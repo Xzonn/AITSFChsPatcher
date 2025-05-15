@@ -10,7 +10,7 @@ namespace AITheSomniumFilesChsPatch
         public MainForm()
         {
             InitializeComponent();
-            AuthorLabel.Text = "作者：Xzonn · 版本：3.0 · 严禁商用 · 不欢迎下载站转载\n其乐论坛：https://keylol.com/t839952-1-1\n使用方法：https://www.bilibili.com/video/BV1At4y1P7B7\n技术细节：https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html";
+            AuthorLabel.Text = "作者：Xzonn · 版本：3.1 · 严禁商用 · 不欢迎下载站转载\n其乐论坛：https://keylol.com/t839952-1-1\n使用方法：https://www.bilibili.com/video/BV1At4y1P7B7\n技术细节：https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html";
             AuthorLabel.Links.Add(41, 30, "https://keylol.com/t839952-1-1");
             AuthorLabel.Links.Add(77, 43, "https://www.bilibili.com/video/BV1At4y1P7B7");
             AuthorLabel.Links.Add(126, 59, "https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html");
