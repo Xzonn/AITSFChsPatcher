@@ -43,7 +43,7 @@ namespace UnityAsset
 
         private void WriteBlocksInfoAndDirectory(BinaryWriterExtended writer)
         {
-            MemoryStream blocksInfoUncompresseddStream = new MemoryStream();
+            MemoryStream blocksInfoUncompresseddStream = new();
             using (var blocksInfoWriter = new BinaryWriterExtended(blocksInfoUncompresseddStream))
             {
                 blocksInfoWriter.Write(BlocksUncompressedDataHash, 0, 16);
@@ -164,7 +164,7 @@ namespace UnityAsset
                     default:
                         throw new IOException($"Unsupported compression type {compressionType}");
                 }
-                StorageBlock block = new StorageBlock
+                StorageBlock block = new()
                 {
                     uncompressedSize = (uint)uncompressedSize,
                     compressedSize = (uint)compressedSize,
@@ -185,7 +185,7 @@ namespace UnityAsset
         private void WriteFiles(MemoryStream blocksStream, Stream[] replaceStreams)
         {
             blocksStream.Position = 0;
-            List<DirectoryOrder> directoryOrders = new List<DirectoryOrder>();
+            List<DirectoryOrder> directoryOrders = [];
             for (int i = 0; i < DirectoryInfo.Length; i++)
             {
                 directoryOrders.Add(new DirectoryOrder

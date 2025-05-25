@@ -1,6 +1,4 @@
-﻿using K4os.Compression.LZ4;
-using System;
-using System.IO;
+﻿using System;
 using System.Windows.Forms;
 
 namespace AITheSomniumFilesChsPatch
@@ -13,7 +11,7 @@ namespace AITheSomniumFilesChsPatch
         [STAThread]
         static void Main()
         {
-            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(AssemblyResolve);
+            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(PatchHelper.AssemblyResolve);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());

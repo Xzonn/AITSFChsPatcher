@@ -146,8 +146,10 @@ namespace UnityAsset
 
         private static List<TypeTreeNode> GetNodes(List<TypeTreeNode> m_Nodes, int index)
         {
-            var nodes = new List<TypeTreeNode>();
-            nodes.Add(m_Nodes[index]);
+            var nodes = new List<TypeTreeNode>
+            {
+                m_Nodes[index]
+            };
             var level = m_Nodes[index].m_Level;
             for (int i = index + 1; i < m_Nodes.Count; i++)
             {

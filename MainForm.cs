@@ -21,6 +21,10 @@ namespace AITheSomniumFilesChsPatch
             Assembly asm = Assembly.GetExecutingAssembly();
             Stream stream = asm.GetManifestResourceStream("AITheSomniumFilesChsPatch.Includes.Header.jpg");
             HeaderImage.Image = System.Drawing.Image.FromStream(stream);
+#if DEBUG
+            GameDirectoryTextBox.Text = @"C:\Program Files (x86)\Steam\steamapps\common\AI The Somnium Files";
+            ApplyPatch(null, null);
+#endif
         }
 
         private void OpenLink(object sender, LinkLabelLinkClickedEventArgs e)
@@ -40,7 +44,7 @@ namespace AITheSomniumFilesChsPatch
             ApplyPatchButton.Enabled = false;
             try
             {
-                Program.ApplyPatch(assetsPath, out tempPath);
+                PatchHelper.ApplyPatch(assetsPath, out tempPath);
                 MessageBox.Show("应用成功！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 ApplyPatchButton.Text = "应用成功！";
             }

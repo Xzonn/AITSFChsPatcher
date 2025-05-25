@@ -92,7 +92,7 @@ namespace UnityAsset
 
             MonoBehaviourTree = new TypeTree
             {
-                m_Nodes = new List<TypeTreeNode>()
+                m_Nodes = []
             };
             FileStream fs = File.OpenRead(Path.Combine(replacePath, "MonoBehaviour.bin"));
             TypeTreeBlobRead(MonoBehaviourTree, new BinaryReaderExtended(fs));
@@ -100,7 +100,7 @@ namespace UnityAsset
             fs = File.OpenRead(Path.Combine(replacePath, "Texture2D.bin"));
             Texture2DTree = new TypeTree
             {
-                m_Nodes = new List<TypeTreeNode>()
+                m_Nodes = []
             };
             TypeTreeBlobRead(Texture2DTree, new BinaryReaderExtended(fs));
             fs.Close();
@@ -128,7 +128,7 @@ namespace UnityAsset
             {
                 type.m_Type = new TypeTree
                 {
-                    m_Nodes = new List<TypeTreeNode>()
+                    m_Nodes = []
                 };
                 TypeTreeBlobRead(type.m_Type);
             }

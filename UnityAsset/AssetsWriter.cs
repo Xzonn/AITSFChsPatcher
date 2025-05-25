@@ -126,7 +126,7 @@ namespace UnityAsset
 
         private void WriteObjects(BinaryReader resourcesReader, BinaryWriter resourcesWriter)
         {
-            List<ObjectOrder> objectOrders = new List<ObjectOrder>();
+            List<ObjectOrder> objectOrders = [];
             for (int i = 0; i < ObjectCount; i++)
             {
                 var objectInfo = Objects[i];
@@ -161,8 +161,8 @@ namespace UnityAsset
             long writerPosition = writer.Position;
 
             objectOrders.Sort((x, y) => x.objectInfo.byteStart.CompareTo(y.objectInfo.byteStart));
-            List<TextureOrder> textureOrders = new List<TextureOrder>();
-            Dictionary<long, TextureSize> textureSizes = new Dictionary<long, TextureSize>();
+            List<TextureOrder> textureOrders = [];
+            Dictionary<long, TextureSize> textureSizes = [];
 
             uint dataPosition = 0;
             foreach (var objectOrder in objectOrders)
@@ -181,7 +181,7 @@ namespace UnityAsset
                     bytes = reader.ReadBytes((int)objectOrder.objectInfo.byteSize);
                 }
 
-                BinaryReaderExtended binaryReader = new BinaryReaderExtended(new MemoryStream(bytes));
+                BinaryReaderExtended binaryReader = new(new MemoryStream(bytes));
 
                 int classID = Types[objectOrder.objectInfo.typeID].classID;
                 if (classID == (int)ClassIDType.MonoBehaviour && !string.IsNullOrEmpty(objectOrder.replacePath)) // MonoBehaviour
@@ -195,17 +195,43 @@ namespace UnityAsset
                 else if (classID == (int)ClassIDType.Texture2D) // Texture2D
                 {
                     OrderedDictionary dictionary = TypeTreeHelper.ReadType(Texture2DTree, binaryReader);
-                    uint offset = (uint)((OrderedDictionary)dictionary["m_StreamData"])["offset"];
-                    uint size = (uint)((OrderedDictionary)dictionary["m_StreamData"])["size"];
-                    var textureOrder = new TextureOrder
+                    string path = (string)((OrderedDictionary)dictionary["m_StreamData"])["path"];
+                    if (string.IsNullOrEmpty(path))
                     {
-                        objectInfo = objectOrder.objectInfo,
-                        position = writer.Position,
-                        resourcePosition = offset,
-                        resourceSize = size,
-                        dictionary = dictionary
-                    };
-                    textureOrders.Add(textureOrder);
+                        long pathID = objectOrder.objectInfo.m_PathID;
+                        string fullReplacePath = Path.Combine(replacePath, $"{assetsName}/Texture2D/{pathID:x016}.res");
+                        if (File.Exists(fullReplacePath))
+                        {
+                            switch ((int)dictionary["m_TextureFormat"])
+                            {
+                                case 10:
+                                case 25:
+                                    dictionary["m_TextureFormat"] = 4;
+                                    break;
+                            }
+                            var newBytes = File.ReadAllBytes(fullReplacePath);
+                            dictionary["m_CompleteImageSize"] = newBytes.Length;
+                            dictionary["image data"] = newBytes;
+                            using var newStream = new MemoryStream();
+                            using var newWriter = new BinaryWriterExtended(newStream);
+                            TypeTreeHelper.WriteType(dictionary, Texture2DTree, newWriter);
+                            bytes = newStream.ToArray();
+                        }
+                    }
+                    else
+                    {
+                        uint offset = (uint)((OrderedDictionary)dictionary["m_StreamData"])["offset"];
+                        uint size = (uint)((OrderedDictionary)dictionary["m_StreamData"])["size"];
+                        var textureOrder = new TextureOrder
+                        {
+                            objectInfo = objectOrder.objectInfo,
+                            position = writer.Position,
+                            resourcePosition = offset,
+                            resourceSize = size,
+                            dictionary = dictionary
+                        };
+                        textureOrders.Add(textureOrder);
+                    }
                 }
 
                 writer.Write(bytes);
@@ -220,14 +246,17 @@ namespace UnityAsset
                 OrderedDictionary dictionary = textureOrder.dictionary;
 
                 long pathID = textureOrder.objectInfo.m_PathID;
-                string fullReplacePath = Path.Combine(replacePath, $"{assetsName}/Texture2D/{textureOrder.objectInfo.m_PathID:x016}.res");
-                if (textureSizes.ContainsKey(pathID) && File.Exists(fullReplacePath))
+                string fullReplacePath = Path.Combine(replacePath, $"{assetsName}/Texture2D/{pathID:x016}.res");
+                if (File.Exists(fullReplacePath))
                 {
                     bytes = File.ReadAllBytes(fullReplacePath);
-                    Debug.Assert(bytes.Length == textureSizes[pathID].width * textureSizes[pathID].height);
                     ((OrderedDictionary)dictionary["m_StreamData"])["size"] = (uint)bytes.Length;
-                    dictionary["m_Width"] = textureSizes[pathID].width;
-                    dictionary["m_Height"] = textureSizes[pathID].height;
+                    if (textureSizes.ContainsKey(pathID))
+                    {
+                        Debug.Assert(bytes.Length == textureSizes[pathID].width * textureSizes[pathID].height);
+                        dictionary["m_Width"] = textureSizes[pathID].width;
+                        dictionary["m_Height"] = textureSizes[pathID].height;
+                    }
                 }
                 else
                 {

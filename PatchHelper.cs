@@ -8,8 +8,16 @@ using System.Linq;
 
 namespace AITheSomniumFilesChsPatch
 {
-    internal static partial class Program
+    public static class PatchHelper
     {
+        private static readonly string[] BUNDLE_FILE_NAMES =
+        [
+            "fonts",
+            "image_name_zh_tw",
+            "luabytecode",
+            // "scene_investigation",
+        ];
+
         public static void ApplyPatch(string basePath, out string tempPath)
         {
             // 检查文件是否存在
@@ -18,16 +26,17 @@ namespace AITheSomniumFilesChsPatch
             var resourcesAssetsPath = Path.Combine(basePath, "AI_TheSomniumFiles_Data/resources.assets");
             Debug.Assert(File.Exists(resourcesAssetsPath));
             Debug.Assert(File.Exists($"{resourcesAssetsPath}.resS"));
-            var fontsAssetsPath = Path.Combine(basePath, "AI_TheSomniumFiles_Data/StreamingAssets/AssetBundles/StandaloneWindows64/fonts");
-            Debug.Assert(File.Exists(fontsAssetsPath));
-            var textsAssetsPath = Path.Combine(basePath, "AI_TheSomniumFiles_Data/StreamingAssets/AssetBundles/StandaloneWindows64/luabytecode");
-            Debug.Assert(File.Exists(textsAssetsPath));
+            foreach (var fileName in BUNDLE_FILE_NAMES)
+            {
+                var bundlePath = Path.Combine(basePath, $"AI_TheSomniumFiles_Data/StreamingAssets/AssetBundles/StandaloneWindows64/{fileName}");
+                Debug.Assert(File.Exists(bundlePath), $"缺少所需的文件：{bundlePath}");
+            }
 
             // 创建临时文件夹
-            tempPath = $"temp_{DateTime.Now.GetHashCode():X8}";
+            tempPath = $"{Path.GetTempPath()}/temp_{DateTime.Now.GetHashCode():X8}";
             while (Directory.Exists(tempPath) || File.Exists(tempPath))
             {
-                tempPath = $"temp_{DateTime.Now.GetHashCode():X8}";
+                tempPath = $"{Path.GetTempPath()}/temp_{DateTime.Now.GetHashCode():X8}";
             }
             DirectoryInfo di = Directory.CreateDirectory(tempPath);
             di.Attributes |= FileAttributes.Hidden;
@@ -43,7 +52,7 @@ namespace AITheSomniumFilesChsPatch
                 string fileExtension = name.Split('.').Last();
                 if (fileExtension == "bin")
                 {
-                    BinaryReader br = new BinaryReader(stream);
+                    BinaryReader br = new(stream);
                     File.WriteAllBytes($"{tempPath}/{fileName}.{fileExtension}", br.ReadBytes((int)br.BaseStream.Length));
                 }
                 else if (fileExtension == "zip")
@@ -53,7 +62,7 @@ namespace AITheSomniumFilesChsPatch
                         stream.Close();
                         stream = File.OpenRead("Patch.zip");
                     }
-                    ZipArchive archive = new ZipArchive(stream);
+                    ZipArchive archive = new(stream);
                     foreach (ZipArchiveEntry file in archive.Entries)
                     {
                         string completeFileName = Path.Combine(tempPath, file.FullName);
@@ -78,11 +87,23 @@ namespace AITheSomniumFilesChsPatch
             // resources.assets
             ReplaceAssets(resourcesAssetsPath, tempPath, $"{tempPath}/Output/resources.assets");
 
-            // fonts
-            ExtractBundle(fontsAssetsPath, tempPath, $"{tempPath}/Output/fonts");
+            // AssetBundles
+            foreach (var fileName in BUNDLE_FILE_NAMES)
+            {
+                string bundlePath = Path.Combine(basePath, $"AI_TheSomniumFiles_Data/StreamingAssets/AssetBundles/StandaloneWindows64/{fileName}");
+                string outputPath = $"{tempPath}/Output/{fileName}";
+                ExtractBundle(bundlePath, tempPath, outputPath);
 
-            // luabytecode
-            ExtractBundle(textsAssetsPath, tempPath, $"{tempPath}/Output/luabytecode");
+                if (!File.Exists($"{bundlePath}.bak"))
+                {
+                    File.Move(bundlePath, $"{bundlePath}.bak");
+                }
+                else
+                {
+                    File.Delete(bundlePath);
+                }
+                File.Move($"{tempPath}/Output/{fileName}", bundlePath);
+            }
 
             // 备份并替换
             if (!File.Exists($"{resourcesAssetsPath}.bak"))
@@ -104,69 +125,44 @@ namespace AITheSomniumFilesChsPatch
                 File.Delete($"{resourcesAssetsPath}.resS");
             }
             File.Move($"{tempPath}/Output/resources.assets.resS", $"{resourcesAssetsPath}.resS");
-
-            if (!File.Exists($"{fontsAssetsPath}.bak"))
-            {
-                File.Move(fontsAssetsPath, $"{fontsAssetsPath}.bak");
-            }
-            else
-            {
-                File.Delete(fontsAssetsPath);
-            }
-            File.Move($"{tempPath}/Output/fonts", fontsAssetsPath);
-
-            if (!File.Exists($"{textsAssetsPath}.bak"))
-            {
-                File.Move(textsAssetsPath, $"{textsAssetsPath}.bak");
-            }
-            else
-            {
-                File.Delete(textsAssetsPath);
-            }
-            File.Move($"{tempPath}/Output/luabytecode", textsAssetsPath);
         }
 
         static void ReplaceAssets(string assetsPath, string replacePath, string outputPath)
         {
             string assetsName = Path.GetFileName(assetsPath);
-            BinaryReaderExtended reader = new BinaryReaderExtended(File.OpenRead(assetsPath));
-            Assets assetsData = new Assets(reader, replacePath, assetsName);
+            using BinaryReaderExtended reader = new(File.OpenRead(assetsPath));
+            Assets assetsData = new(reader, replacePath, assetsName);
 
-            BinaryWriterExtended writer = new BinaryWriterExtended(File.Create(outputPath));
-            BinaryReaderExtended resourcesReader = new BinaryReaderExtended(File.OpenRead($"{assetsPath}.resS"));
-            BinaryWriterExtended resourcesWriter = new BinaryWriterExtended(File.Create($"{outputPath}.resS"));
+            using BinaryWriterExtended writer = new(File.Create(outputPath));
+            using BinaryReaderExtended resourcesReader = new(File.OpenRead($"{assetsPath}.resS"));
+            using BinaryWriterExtended resourcesWriter = new(File.Create($"{outputPath}.resS"));
 
             assetsData.DumpRaw(writer, resourcesReader, resourcesWriter);
-
-            reader.Close();
-            writer.Close();
-            resourcesReader.Close();
-            resourcesWriter.Close();
         }
 
         static void ExtractBundle(string bundlePath, string replacePath, string outputPath)
         {
-            BinaryReaderExtended reader = new BinaryReaderExtended(File.OpenRead(bundlePath));
-            Bundle bundleData = new Bundle(reader);
+            using BinaryReaderExtended reader = new(File.OpenRead(bundlePath));
+            Bundle bundleData = new(reader);
             Debug.Assert(bundleData.FileList.Length == 1 || bundleData.FileList.Length == 2);
 
             Bundle.StreamFile assetsFile, resourcesFile;
-            MemoryStream assetsStream = new MemoryStream(), resourcesStream = new MemoryStream();
+            MemoryStream assetsStream = new(), resourcesStream = new();
             Stream[] replaceStreams;
             if (bundleData.FileList[0].fileName.Contains(".resS"))
             {
                 resourcesFile = bundleData.FileList[0];
                 assetsFile = bundleData.FileList[1];
-                replaceStreams = new Stream[]
-                {
+                replaceStreams =
+                [
                     resourcesStream,
                     assetsStream
-                };
+                ];
             }
             else
             {
                 assetsFile = bundleData.FileList[0];
-                if (bundleData.FileList.Length == 2)
+                if (bundleData.FileList.Length == 2 && bundleData.FileList[1].fileName.Contains(".resS"))
                 {
                     resourcesFile = bundleData.FileList[1];
                 }
@@ -174,31 +170,24 @@ namespace AITheSomniumFilesChsPatch
                 {
                     resourcesFile = new Bundle.StreamFile { stream = new MemoryStream() };
                 }
-                replaceStreams = new Stream[]
-                {
+                replaceStreams =
+                [
                     assetsStream,
                     resourcesStream
-                };
+                ];
             }
-            BinaryReaderExtended assetsReader = new BinaryReaderExtended(assetsFile.stream);
-            Assets assetsData = new Assets(assetsReader, replacePath, assetsFile.fileName);
-            BinaryWriterExtended assetsWriter = new BinaryWriterExtended(assetsStream);
-            BinaryReaderExtended resourcesReader = new BinaryReaderExtended(resourcesFile.stream);
-            BinaryWriterExtended resourcesWriter = new BinaryWriterExtended(resourcesStream);
+            using BinaryReaderExtended assetsReader = new(assetsFile.stream);
+            Assets assetsData = new(assetsReader, replacePath, assetsFile.fileName);
+            using BinaryWriterExtended assetsWriter = new(assetsStream);
+            using BinaryReaderExtended resourcesReader = new(resourcesFile.stream);
+            using BinaryWriterExtended resourcesWriter = new(resourcesStream);
             assetsData.DumpRaw(assetsWriter, resourcesReader, resourcesWriter);
 
-            BinaryWriterExtended writer = new BinaryWriterExtended(File.Create(outputPath));
+            using BinaryWriterExtended writer = new(File.Create(outputPath));
             bundleData.DumpRaw(writer, replaceStreams);
-
-            reader.Close();
-            writer.Close();
-            assetsReader.Close();
-            assetsWriter.Close();
-            resourcesReader.Close();
-            resourcesWriter.Close();
         }
 
-        static Assembly AssemblyResolve(object sender, ResolveEventArgs args)
+        public static Assembly AssemblyResolve(object sender, ResolveEventArgs args)
         {
             Assembly asm = Assembly.GetExecutingAssembly();
             string dllName = args.Name.Contains(",") ? args.Name.Substring(0, args.Name.IndexOf(',')) : args.Name.Replace(".dll", "");
