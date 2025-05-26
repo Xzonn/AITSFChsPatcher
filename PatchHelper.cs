@@ -5,6 +5,7 @@ using System.IO;
 using System.Reflection;
 using System.IO.Compression;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace AITheSomniumFilesChsPatch
 {
@@ -63,34 +64,63 @@ namespace AITheSomniumFilesChsPatch
                     BinaryReader br = new(stream);
                     File.WriteAllBytes($"{tempPath}/{fileName}.{fileExtension}", br.ReadBytes((int)br.BaseStream.Length));
                 }
-                else if (fileExtension == "zip")
-                {
-                    if (File.Exists("Patch.zip"))
-                    {
-                        stream.Close();
-                        stream = File.OpenRead("Patch.zip");
-                    }
-                    ZipArchive archive = new(stream);
-                    foreach (ZipArchiveEntry file in archive.Entries)
-                    {
-                        string completeFileName = Path.Combine(tempPath, file.FullName);
-                        if (file.Name == "")
-                        {
-                            Directory.CreateDirectory(Path.GetDirectoryName(completeFileName));
-                            continue;
-                        }
-                        else
-                        {
-                            if (!Directory.Exists(Path.GetDirectoryName(completeFileName)))
-                            {
-                                Directory.CreateDirectory(Path.GetDirectoryName(completeFileName));
-                            }
-                            file.ExtractToFile(completeFileName, true);
-                        }
-                    }
-                }
                 stream.Close();
             }
+
+            // 解压补丁包
+            Stream zipStream = null;
+            if (File.Exists("patch.xzp"))
+            {
+                zipStream = File.OpenRead("patch.xzp");
+            }
+            else if (File.Exists("patch.zip"))
+            {
+                zipStream = File.OpenRead("patch.zip");
+            }
+            else
+            {
+                var result = MessageBox.Show("未找到补丁包，请确认是否将“patch.xzp”放在补丁工具同一个文件夹下。\n\n是否手动选择补丁包？", "错误", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                if (result == DialogResult.Yes)
+                {
+                    using OpenFileDialog openFileDialog = new()
+                    {
+                        Title = "选择补丁包",
+                        Filter = "补丁包|*.zip;*.xzp|所有文件|*.*",
+                        InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                    };
+                    if (openFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        zipStream = File.OpenRead(openFileDialog.FileName);
+                    }
+                    else
+                    {
+                        throw new FileNotFoundException("未选择补丁包。");
+                    }
+                }
+                else
+                {
+                    throw new FileNotFoundException("未选择补丁包。");
+                }
+            }
+            ZipArchive archive = new(zipStream);
+            foreach (ZipArchiveEntry file in archive.Entries)
+            {
+                string completeFileName = Path.Combine(tempPath, file.FullName);
+                if (file.Name == "")
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(completeFileName));
+                    continue;
+                }
+                else
+                {
+                    if (!Directory.Exists(Path.GetDirectoryName(completeFileName)))
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(completeFileName));
+                    }
+                    file.ExtractToFile(completeFileName, true);
+                }
+            }
+            zipStream.Close();
 
             // resources.assets
             ReplaceAssets(resourcesAssetsPath, tempPath, $"{tempPath}/Output/resources.assets");
@@ -152,7 +182,6 @@ namespace AITheSomniumFilesChsPatch
         {
             using BinaryReaderExtended reader = new(File.OpenRead(bundlePath));
             Bundle bundleData = new(reader);
-            Debug.Assert(bundleData.FileList.Length == 1 || bundleData.FileList.Length == 2);
 
             Bundle.StreamFile assetsFile, resourcesFile;
             MemoryStream assetsStream = new(), resourcesStream = new();

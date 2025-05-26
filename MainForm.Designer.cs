@@ -117,7 +117,7 @@ namespace AITheSomniumFilesChsPatch
             this.Name = "MainForm";
             this.MaximizeBox = false;
             this.Padding = new System.Windows.Forms.Padding(10);
-            this.Text = "《AI：梦境档案》简体中文字体替换补丁 - Xzonn";
+            this.Text = "《AI：梦境档案》简体中文补丁 - Xzonn";
             ((System.ComponentModel.ISupportInitialize)(this.HeaderImage)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

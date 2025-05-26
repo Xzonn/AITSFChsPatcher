@@ -211,7 +211,7 @@ namespace UnityAsset
                             }
                             else
                             {
-                                Debug.Assert(false, $"Texture2D {pathID:x016} size mismatch: expected {dictionary["m_CompleteImageSize"]}, got {newBytes.Length}");
+                                Debug.Assert(false, $"Texture2D {assetsName}/{pathID:x016} size mismatch:\nexpected {dictionary["m_CompleteImageSize"]}, got {newBytes.Length}");
                                 dictionary["image data"] = newBytes.Take(originalSize).Concat(((byte[])dictionary["image data"]).Skip(newBytes.Length)).ToArray();
                             }
                             using var newStream = new MemoryStream();

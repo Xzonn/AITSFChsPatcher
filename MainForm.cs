@@ -7,10 +7,13 @@ namespace AITheSomniumFilesChsPatch
 {
     public partial class MainForm : Form
     {
+        const string DEFUALT_FOLDER = @"C:\Program Files (x86)\Steam\steamapps\common\AI The Somnium Files";
+        bool IsError = false;
+
         public MainForm()
         {
             InitializeComponent();
-            AuthorLabel.Text = "作者：Xzonn · 版本：3.1 · 严禁商用 · 不欢迎下载站转载\n其乐论坛：https://keylol.com/t839952-1-1\n使用方法：https://www.bilibili.com/video/BV1At4y1P7B7\n技术细节：https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html";
+            AuthorLabel.Text = "作者：Xzonn · 版本：4.0 · 严禁商用 · 不欢迎下载站转载\n其乐论坛：https://keylol.com/t839952-1-1\n使用方法：https://www.bilibili.com/video/BV1At4y1P7B7\n技术细节：https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html";
             AuthorLabel.Links.Add(41, 30, "https://keylol.com/t839952-1-1");
             AuthorLabel.Links.Add(77, 43, "https://www.bilibili.com/video/BV1At4y1P7B7");
             AuthorLabel.Links.Add(126, 59, "https://xzonn.top/posts/AI-The-Somnium-Files-Chs-Patch.html");
@@ -21,8 +24,12 @@ namespace AITheSomniumFilesChsPatch
             Assembly asm = Assembly.GetExecutingAssembly();
             Stream stream = asm.GetManifestResourceStream("AITheSomniumFilesChsPatch.Includes.Header.jpg");
             HeaderImage.Image = System.Drawing.Image.FromStream(stream);
+            if (Directory.Exists(DEFUALT_FOLDER))
+            {
+                GameDirectoryTextBox.Text = DEFUALT_FOLDER;
+                UpdateButton(true);
+            }
 #if DEBUG
-            GameDirectoryTextBox.Text = @"C:\Program Files (x86)\Steam\steamapps\common\AI The Somnium Files";
             ApplyPatch(null, null);
 #endif
         }
@@ -38,6 +45,12 @@ namespace AITheSomniumFilesChsPatch
 
         private void ApplyPatch(object sender, EventArgs e)
         {
+            if (IsError)
+            {
+                ApplyPatchButton.Text = "应用补丁";
+                IsError = false;
+                return;
+            }
             string assetsPath = GameDirectoryTextBox.Text;
             string tempPath = "";
             ApplyPatchButton.Text = "应用中……";
@@ -52,6 +65,8 @@ namespace AITheSomniumFilesChsPatch
             {
                 MessageBox.Show(exception.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 ApplyPatchButton.Text = "出现错误！";
+                ApplyPatchButton.Enabled = true;
+                IsError = true;
             }
             if (!string.IsNullOrEmpty(tempPath) && Directory.Exists(tempPath))
             {
@@ -97,7 +112,7 @@ namespace AITheSomniumFilesChsPatch
             var dialog = new FolderBrowserDialog
             {
                 ShowNewFolderButton = false,
-                Description = "选择",
+                Description = "选择游戏文件夹",
                 SelectedPath = GameDirectoryTextBox.Text
             };
             dialog.ShowDialog();
@@ -105,13 +120,11 @@ namespace AITheSomniumFilesChsPatch
             if (CheckIfDirectoryExists(ref path))
             {
                 GameDirectoryTextBox.Text = path;
-                ApplyPatchButton.Text = "应用补丁";
-                ApplyPatchButton.Enabled = true;
+                UpdateButton(true);
             }
             else
             {
-                GameDirectoryTextBox.Text = "";
-                ApplyPatchButton.Enabled = false;
+                UpdateButton(false);
             }
         }
 
@@ -121,13 +134,11 @@ namespace AITheSomniumFilesChsPatch
             if (CheckIfDirectoryExists(ref path))
             {
                 ((TextBox)sender).Text = path;
-                ApplyPatchButton.Text = "应用补丁";
-                ApplyPatchButton.Enabled = true;
+                UpdateButton(true);
             }
             else
             {
-                GameDirectoryTextBox.Text = "";
-                ApplyPatchButton.Enabled = false;
+                UpdateButton(false);
             }
         }
 
@@ -142,6 +153,12 @@ namespace AITheSomniumFilesChsPatch
             {
                 e.Effect = DragDropEffects.None;
             }
+        }
+
+        private void UpdateButton(bool enabled)
+        {
+            ApplyPatchButton.Text = enabled ? "应用补丁" : "";
+            ApplyPatchButton.Enabled = enabled;
         }
 
         private enum Position

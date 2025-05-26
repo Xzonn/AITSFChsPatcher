@@ -119,7 +119,6 @@
     </Compile>
     <None Include="App.manifest" />
     <EmbeddedResource Include="Includes\MonoBehaviour.bin" />
-    <EmbeddedResource Include="Includes\Patch.zip" />
     <None Include="Packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
