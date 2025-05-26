@@ -15,7 +15,15 @@ namespace AITheSomniumFilesChsPatch
             "fonts",
             "image_name_zh_tw",
             "luabytecode",
-            // "scene_investigation",
+            "scene_autosaveguide",
+            "scene_dance",
+            "scene_fiction",
+            "scene_file",
+            "scene_flowchart",
+            "scene_investigation",
+            "scene_languageselect",
+            "scene_options",
+            "scene_somnium",
         ];
 
         public static void ApplyPatch(string basePath, out string tempPath)
@@ -156,7 +164,7 @@ namespace AITheSomniumFilesChsPatch
                 replaceStreams =
                 [
                     resourcesStream,
-                    assetsStream
+                    assetsStream,
                 ];
             }
             else
@@ -165,16 +173,20 @@ namespace AITheSomniumFilesChsPatch
                 if (bundleData.FileList.Length == 2 && bundleData.FileList[1].fileName.Contains(".resS"))
                 {
                     resourcesFile = bundleData.FileList[1];
+                    replaceStreams =
+                    [
+                        assetsStream,
+                        resourcesStream,
+                    ];
                 }
                 else
                 {
                     resourcesFile = new Bundle.StreamFile { stream = new MemoryStream() };
+                    replaceStreams =
+                    [
+                        assetsStream,
+                    ];
                 }
-                replaceStreams =
-                [
-                    assetsStream,
-                    resourcesStream
-                ];
             }
             using BinaryReaderExtended assetsReader = new(assetsFile.stream);
             Assets assetsData = new(assetsReader, replacePath, assetsFile.fileName);

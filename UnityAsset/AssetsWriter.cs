@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace UnityAsset
 {
@@ -202,16 +203,17 @@ namespace UnityAsset
                         string fullReplacePath = Path.Combine(replacePath, $"{assetsName}/Texture2D/{pathID:x016}.res");
                         if (File.Exists(fullReplacePath))
                         {
-                            switch ((int)dictionary["m_TextureFormat"])
-                            {
-                                case 10:
-                                case 25:
-                                    dictionary["m_TextureFormat"] = 4;
-                                    break;
-                            }
                             var newBytes = File.ReadAllBytes(fullReplacePath);
-                            dictionary["m_CompleteImageSize"] = newBytes.Length;
-                            dictionary["image data"] = newBytes;
+                            var originalSize = (int)dictionary["m_CompleteImageSize"];
+                            if (originalSize == newBytes.Length)
+                            {
+                                dictionary["image data"] = newBytes;
+                            }
+                            else
+                            {
+                                Debug.Assert(false, $"Texture2D {pathID:x016} size mismatch: expected {dictionary["m_CompleteImageSize"]}, got {newBytes.Length}");
+                                dictionary["image data"] = newBytes.Take(originalSize).Concat(((byte[])dictionary["image data"]).Skip(newBytes.Length)).ToArray();
+                            }
                             using var newStream = new MemoryStream();
                             using var newWriter = new BinaryWriterExtended(newStream);
                             TypeTreeHelper.WriteType(dictionary, Texture2DTree, newWriter);
